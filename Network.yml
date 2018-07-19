@@ -1,28 +1,54 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: 
 
+#-------------------------------------------------------------------------------
+#--[ PARAMETERS ]---------------------------------------------------------------
+#-------------------------------------------------------------------------------
+
+Parameters:
+
+  AZ:
+    Type: String
+    Description: AZ ou créer les ressources
+    Default: ${AWS::Region }
+    
+  ClientName:
+    Type: String
+    Description: Nom complet du client
+    Default: cap-loisirs
+
+  VPCNumber:
+    Type: Number
+    Default: 3
+    Description: "ID du VPC servant à définir le CIDR : 10.<ID>.0.0/16"
+
+
+
+#-------------------------------------------------------------------------------
+#--[ RESOURCES ]---------------------------------------------------------------
+#-------------------------------------------------------------------------------
 
 Resources:
 
-#vpc creation 
         
-  Vpclabcldf:
+  VPC:
     Type: 'AWS::EC2::VPC'
     Properties:
-     CidrBlock: 10.0.0.0/16
-     EnableDnsSupport: true
-     EnableDnsHostnames: 'false'
-     InstanceTenancy: 'default'
-     Tags:
-       - Key: Name
-         Value: Vpc-lab
+      CidrBlock: !Sub
+        - 10.${id}.0.0/16
+        - { id: !Ref VPCNumber }
+      EnableDnsHostnames: 'false'
+      InstanceTenancy: 'default'
+      Tags:
+        - Key: Name
+          Value: Vpc-lab
 
-#public and private subnets creation
+#public and private subnets 
 
   PubSubnet1:
     Type: 'AWS::EC2::Subnet'
     Properties:
-      AvailabilityZone: 'eu-west-1a'
+      AvailabilityZone: !Ref AZ
       CidrBlock: 10.0.1.0/24
       MapPublicIpOnLaunch: 'true'
       Tags:
