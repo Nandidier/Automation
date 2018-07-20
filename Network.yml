@@ -17,7 +17,7 @@ Parameters:
     Description: Nom complet du client
     Default: cap-loisirs
 
-  VPCNumber:
+  VPCId:
     Type: Number
     Default: 3
     Description: "ID du VPC servant à définir le CIDR : 10.<ID>.0.0/16"
@@ -36,26 +36,26 @@ Resources:
     Properties:
       CidrBlock: !Sub
         - 10.${id}.0.0/16
-        - { id: !Ref VPCNumber }
+        - { id: !Ref VPCId }
       EnableDnsHostnames: 'false'
       InstanceTenancy: 'default'
       Tags:
         - Key: Name
-          Value: Vpc-lab
+          Value: !Ref ClientName
 
 #public and private subnets 
 
-  PubSubnet1:
+  PubSubnet:
     Type: 'AWS::EC2::Subnet'
     Properties:
-      AvailabilityZone: !Ref AZ
+      AvailabilityZone: !Sub {!Ref AZ}a
       CidrBlock: 10.0.1.0/24
       MapPublicIpOnLaunch: 'true'
       Tags:
         - Key: Name
           Value: Sub-pub-lab-10.0.1
       VpcId:
-        Ref: Vpclabcldf
+        Ref: Vpclabcldf     
 
 
   PubSubnet2:
