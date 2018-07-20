@@ -1,0 +1,57 @@
+Parameters:
+
+  Env:
+    Type: String
+
+Conditions:
+
+  IsProd:
+    Fn::Equals:
+      - !Ref Env
+      - prd
+
+  IsDev:
+    Fn::Equals:
+      - !Ref Env
+      - prd
+
+
+Resources:
+
+     
+  TestWorkerServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: "/"
+      AssumeRolePolicyDocument:
+        Statement:
+          -
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "ec2.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+
+      Policies:
+        - PolicyName: AccessTo-s3-test
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Resource:
+                  Fn::If:
+                    - IsProd
+                    - - !Sub arn:aws:s3:::hugoblogbuild
+                      - !Sub arn:aws:s3:::hugoblogbuild/*
+                    - - !Sub arn:aws:s3:::hugoblog.osones.com
+                      - !Sub arn:aws:s3:::didierosoneskeyz
+                      - !Sub arn:aws:s3:::didierosoneskeyz/*
+                      - !Sub arn:aws:s3:::hugoblog.osones.com/*
+                      - !Sub arn:aws:s3:::hugoblogtest.osones.com
+                      - !Sub arn:aws:s3:::hugoblogtest.osones.com/*
+                Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:ListObjects
+
