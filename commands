@@ -1,4 +1,14 @@
-wget https://dl.influxdata.com/telegraf/releases/telegraf-1.7.2_linux_amd64.tar.gz
-tar xf telegraf-1.7.2_linux_amd64.tar.gz
+wget https://dl.influxdata.com/telegraf/releases/telegraf_1.7.2-1_amd64.deb
+sudo dpkg -i telegraf_1.7.2-1_amd64.deb
 
 
+wget https://dl.influxdata.com/influxdb/releases/influxdb_1.6.0_amd64.deb
+sudo dpkg -i influxdb_1.6.0_amd64.deb
+
+
+wget https://dl.influxdata.com/chronograf/releases/chronograf_1.5.0.1_amd64.deb
+sudo dpkg -i chronograf_1.5.0.1_amd64.deb
+
+
+wget https://dl.influxdata.com/kapacitor/releases/kapacitor_1.5.0_amd64.deb
+sudo dpkg -i kapacitor_1.5.0_amd64.deb
