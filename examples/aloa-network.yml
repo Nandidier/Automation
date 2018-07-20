@@ -1,0 +1,224 @@
+
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Network conf for Aloa infrastructure testing
+
+#-------------------------------------------------------------------------------
+#--[ PARAMETERS ]---------------------------------------------------------------
+#-------------------------------------------------------------------------------
+
+Parameters:
+
+  CompanyName:
+    Type: String
+
+  CidrBlockVPC:
+    Description: Cidr block for vpc like 10.0.0.0/16
+    Type: String
+
+  CidrBlockPublicA:
+    Type: String
+
+  CidrBlockPublicB:
+    Type: String
+
+  CidrBlockPublicC:
+    Type: String
+
+  CidrBlockPrivateA:
+    Type: String
+
+  CidrBlockPrivateB:
+    Type: String
+
+  CidrBlockPrivateC:
+    Type: String
+
+#----------------------------------------------------------------------
+#--[ Resourses ]-------------------------------------------------------
+#----------------------------------------------------------------------
+    
+Resources:
+
+# Network
+
+  VPC:
+    Type: "AWS::EC2::VPC"
+    Properties: 
+      CidrBlock: !Ref CidrBlockVPC
+      EnableDnsSupport: True
+      EnableDnsHostnames: True
+      Tags:
+        - Key: Name
+          Value: !Ref CompanyName
+
+# Internet Gateway
+  Igw:
+    Type: "AWS::EC2::InternetGateway"
+    Properties:
+      Tags:
+      - Key: Name
+        Value: !Ref CompanyName
+
+  EgressOnlyInternetGateway:
+    Type: "AWS::EC2::EgressOnlyInternetGateway"
+    Properties:
+      VpcId: !Ref VPC
+
+# Attach Internet Gateway 
+
+  IgwAttach:
+    Type: "AWS::EC2::VPCGatewayAttachment"
+    Properties: 
+      InternetGatewayId: !Ref Igw
+      VpcId: !Ref VPC
+
+# Subnets - privates + publics in separate AZs
+
+  PublicSubnetA:
+    Type: "AWS::EC2::Subnet"
+    Properties: 
+      AvailabilityZone: !Sub ${AWS::Region}a
+      CidrBlock: !Ref CidrBlockPublicA
+      MapPublicIpOnLaunch: True
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: public-a
+
+  PublicSubnetB:
+    Type: "AWS::EC2::Subnet"
+    Properties: 
+      AvailabilityZone: !Sub ${AWS::Region}b
+      CidrBlock: !Ref CidrBlockPublicB
+      MapPublicIpOnLaunch: True
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: public-b
+
+  PublicSubnetC:
+    Type: "AWS::EC2::Subnet"
+    Properties: 
+      AvailabilityZone: !Sub ${AWS::Region}c
+      CidrBlock: !Ref CidrBlockPublicC
+      MapPublicIpOnLaunch: True
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: public-c
+
+          
+  PrivateSubnetA:
+    Type: "AWS::EC2::Subnet"
+    Properties: 
+      AvailabilityZone: !Sub ${AWS::Region}a
+      CidrBlock: !Ref CidrBlockPrivateA
+      MapPublicIpOnLaunch: False
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: private-a
+
+  PrivateSubnetB:
+    Type: "AWS::EC2::Subnet"
+    Properties: 
+      AvailabilityZone: !Sub ${AWS::Region}b
+      CidrBlock: !Ref CidrBlockPrivateB
+      MapPublicIpOnLaunch: False
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: private-b
+  
+  PrivateSubnetC:
+    Type: "AWS::EC2::Subnet"
+    Properties: 
+      AvailabilityZone: !Sub ${AWS::Region}c
+      CidrBlock: !Ref CidrBlockPrivateC
+      MapPublicIpOnLaunch: False
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: private-c
+
+# Route Tables
+
+  RouteTablePublic:
+    Type: "AWS::EC2::RouteTable"
+    Properties: 
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: public
+
+  RouteTablePrivate:
+    Type: "AWS::EC2::RouteTable"
+    Properties: 
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: private
+
+# Route Table Associations
+ 
+  PublicSubnetAssociationA:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties: 
+      RouteTableId: !Ref RouteTablePublic
+      SubnetId: !Ref PublicSubnetA
+
+  PublicSubnetAssociationB:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties: 
+      RouteTableId: !Ref RouteTablePublic
+      SubnetId: !Ref PublicSubnetB
+
+  PublicSubnetAssociationC:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties: 
+      RouteTableId: !Ref RouteTablePublic
+      SubnetId: !Ref PublicSubnetC
+
+  PrivateSubnetAssociationA:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties: 
+      RouteTableId: !Ref RouteTablePrivate
+      SubnetId: !Ref PrivateSubnetA
+
+  PrivateSubnetAssociationB:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties: 
+      RouteTableId: !Ref RouteTablePrivate
+      SubnetId: !Ref PrivateSubnetB
+
+  PrivateSubnetAssociationC:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    Properties: 
+      RouteTableId: !Ref RouteTablePrivate
+      SubnetId: !Ref PrivateSubnetC
+
+# S3 Endpoint and Routes
+
+  S3Endpoint: 
+    Type: "AWS::EC2::VPCEndpoint"
+    Properties: 
+      RouteTableIds: 
+        - !Ref RouteTablePrivate
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.s3"
+      VpcId: !Ref VPC
+ 
+  PrivateRoute:
+    Type: "AWS::EC2::Route"
+    DependsOn: EgressOnlyInternetGateway
+    Properties:
+      RouteTableId: !Ref RouteTablePrivate
+      DestinationIpv6CidrBlock: ::/0
+      EgressOnlyInternetGatewayId: !Ref EgressOnlyInternetGateway
+
+  PublicRoute:
+    Type: "AWS::EC2::Route"
+    DependsOn: Igw
+    Properties:
+      RouteTableId: !Ref RouteTablePublic
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref Igw
