@@ -1,0 +1,138 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: ""
+
+
+ApplicationLoadBalancer:
+    Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'    
+    Properties:
+      Scheme: internet-facing
+      SecurityGroups: 
+        - Ref: AlbSecurityGroup
+      Subnets: 
+        - Ref: PublicSubnetA
+        - Ref: PublicSubnetB
+        - Ref: PublicSubnetC
+      IpAddressType: ipv4
+      Tags:
+        - Key: Name
+          Value: Alb-lab
+          
+  TargetGroupwww:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties: 
+      HealthCheckIntervalSeconds: 200
+      HealthCheckPath: /healthcheck.html
+      HealthCheckPort: '80'
+      HealthCheckProtocol: 'HTTP'
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 3
+      Name: 'Tgrp-lab'
+      Port: 80
+      Protocol: 'HTTP'
+      TargetType: 'instance'
+      UnhealthyThresholdCount: 2
+      VpcId:
+        Ref: Vpclabcldf
+
+  TargetGroupEmpty:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties: 
+      HealthCheckIntervalSeconds: 200
+      HealthCheckPath: /healthcheck.html
+      HealthCheckPort: '80'
+      HealthCheckProtocol: 'HTTP'
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 3
+      Name: 'Tgrp-lab-empty'
+      Port: 80
+      Protocol: 'HTTP'
+      TargetType: instance
+      UnhealthyThresholdCount: 2
+      VpcId:
+        Ref: Vpclabcldf
+  
+  Listener: 
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      DefaultActions:
+      - Type: forward
+        TargetGroupArn:
+          Ref: TargetGroupwww
+      LoadBalancerArn:
+          Ref: ApplicationLoadBalancer
+      Port: '80'
+      Protocol: HTTP
+
+  ListenerRule:
+    Type: 'AWS::ElasticLoadBalancingV2::ListenerRule'
+    Properties:
+      Actions:
+      - Type: forward
+        TargetGroupArn:
+          Ref: TargetGroupwww
+      Conditions:
+      - Field: host-header
+        Values:
+        - 'didier.osones.com'
+      ListenerArn:
+        Ref: Listener
+      Priority: 1
+
+
+  LaunchConfigurationwww:
+    Type: 'AWS::AutoScaling::LaunchConfiguration'
+    DependsOn: Vpclabcldf
+    Properties:
+      ImageId: 'ami-3bfab942'
+      InstanceType: 't2.micro'
+      KeyName: Lab002
+      SecurityGroups:
+        - Ref: SecurityGroupwww
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum install git -y
+          yum install nginx -y
+          yum update -y
+          mkdir /usr/share/nginx/www
+          git clone https://github.com/Nandidier/awsosoneslab002.git /usr/share/nginx/www
+          mv /etc/nginx/nginx.conf /etc/nginx/nginx.conf.old
+          mv /usr/share/nginx/www/nginx.conf /etc/nginx/nginx.conf
+          chmod 755 -R /usr/share/nginx/www
+          service nginx start 
+          chkconfig nginx on
+
+
+  AutoScalingGroup: 
+    Type: 'AWS::AutoScaling::AutoScalingGroup'
+    DependsOn: Vpclabcldf
+    Properties: 
+      VPCZoneIdentifier:
+        - Ref: PrivSubnet1
+        - Ref: PrivSubnet2
+        - Ref: PrivSubnet3
+      LaunchConfigurationName: 
+        Ref: LaunchConfigurationwww
+      DesiredCapacity: '3'
+      MaxSize: '3'
+      MinSize: '3'
+      TargetGroupARNs: 
+        - Ref: TargetGroupwww
+    
+
+  AdmInstance:
+    Type: 'AWS::EC2::Instance'
+    DependsOn: AdmSecurityGroup
+    Properties:
+      ImageId: 'ami-3bfab942'
+      InstanceType: 't2.micro'
+      KeyName: Lab002
+      AvailabilityZone: 'eu-west-1a'
+      SecurityGroupIds:
+        - Ref: AdmSecurityGroup
+      SubnetId:
+        Ref: PubSubnet1
+      Tags:
+        - Key: Name
+          Value: BastionInstance
+
