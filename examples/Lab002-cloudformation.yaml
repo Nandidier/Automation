@@ -383,7 +383,7 @@ Resources:
         Fn::Base64: !Sub |
           #!/bin/bash
           yum install git -y
-          yum install nginx -y
+          amazon-linux-extras install nginx1.12 -y
           yum update -y
           mkdir /usr/share/nginx/www
           git clone https://github.com/Nandidier/awsosoneslab002.git /usr/share/nginx/www
